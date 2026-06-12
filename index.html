@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Good Morning, Vietnam — wake Claude up before you do</title>
+<meta name="description" content="A tiny open-source automation that starts your Claude Max 5-hour usage window while you're still asleep. Python + GitHub Actions. Your computer stays off.">
+<meta property="og:title" content="Good Morning, Vietnam">
+<meta property="og:description" content="Wake Claude up before you do. Your 5-hour Max window starts while you sleep.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://marcozambrella.github.io/gooodmorning-vietnam/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='40' fill='%23e8a33d'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Libre+Franklin:ital,wght@0,400;0,500;0,700;1,400&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --sun:       oklch(0.67 0.20 43);   /* poster burnt orange */
+    --sun-deep:  oklch(0.55 0.19 36);   /* sienna red */
+    --gold:      oklch(0.84 0.155 90);  /* hot poster yellow */
+    --ink:       oklch(0.16 0.015 45);  /* warm near-black */
+    --ink-soft:  oklch(0.34 0.015 45);
+    --white:     oklch(1 0 0);
+    --on-dark:   oklch(0.96 0.01 75);
+    --on-dark-muted: oklch(0.76 0.02 70);
+
+    --display: "Anton", sans-serif;
+    --text: "Libre Franklin", sans-serif;
+    --mono: "JetBrains Mono", monospace;
+
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --measure: 62ch;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+  body {
+    font-family: var(--text);
+    font-size: 1.0625rem;
+    line-height: 1.6;
+    color: var(--ink);
+    background: var(--white);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3 { text-wrap: balance; }
+  p { text-wrap: pretty; }
+
+  a { color: inherit; }
+
+  ::selection { background: var(--gold); color: var(--ink); }
+
+  :focus-visible {
+    outline: 3px solid var(--ink);
+    outline-offset: 3px;
+  }
+  .dark :focus-visible, .hero :focus-visible { outline-color: var(--gold); }
+
+  /* ---------- HERO: the poster ---------- */
+
+  .hero {
+    background: var(--sun);
+    color: var(--ink);
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 1.4rem clamp(1.25rem, 4vw, 3rem);
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border-bottom: 3px solid var(--ink);
+    position: relative;
+    z-index: 2;
+  }
+  .hero-top a { text-decoration: none; }
+  .hero-top a:hover { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 2px; }
+
+  .hero-main {
+    flex: 1;
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    text-align: center;
+    padding: clamp(2rem, 6vh, 4rem) clamp(1.25rem, 4vw, 3rem) 0;
+    position: relative;
+    z-index: 2;
+  }
+
+  .hero h1 {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: clamp(2.7rem, 10.5vw, 6rem);
+    line-height: 0.96;
+    letter-spacing: 0.005em;
+    text-transform: uppercase;
+    max-width: 14ch;
+  }
+  .hero h1 .line { display: block; overflow: hidden; }
+  .hero h1 .line > span { display: inline-block; }
+  .hero h1 .shout { color: var(--white); }
+
+  .hero-sub {
+    margin-top: 1.75rem;
+    max-width: 44ch;
+    font-size: clamp(1.05rem, 1.5vw, 1.25rem);
+    font-weight: 500;
+    line-height: 1.5;
+  }
+
+  .hero-cta-row {
+    margin-top: 2.25rem;
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .btn {
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    text-decoration: none;
+    padding: 1rem 1.75rem;
+    display: inline-block;
+    transition: transform 0.18s var(--ease-out), background-color 0.18s var(--ease-out), color 0.18s var(--ease-out);
+  }
+  .btn:active { transform: scale(0.97); }
+
+  .btn-ink {
+    background: var(--ink);
+    color: var(--on-dark);
+  }
+  .btn-ink:hover { background: var(--white); color: var(--ink); }
+
+  .btn-outline {
+    border: 3px solid var(--ink);
+    color: var(--ink);
+  }
+  .btn-outline:hover { background: var(--ink); color: var(--on-dark); }
+
+  /* The rising sun — flat cut-out, vintage poster sunburst */
+  .sun-stage {
+    position: relative;
+    width: 100%;
+    height: clamp(160px, 26vh, 250px);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .sun-rays {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    width: min(110vw, 1000px);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    transform: translate(-50%, 50%);
+    background: repeating-conic-gradient(var(--sun-deep) 0deg 7deg, transparent 7deg 20deg);
+  }
+  .sun {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    width: clamp(190px, 26vw, 340px);
+    aspect-ratio: 1;
+    background: var(--gold);
+    border-radius: 50%;
+    transform: translate(-50%, 50%);
+  }
+  .horizon {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 6px;
+    background: var(--ink);
+    z-index: 2;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .sun {
+      animation: sunrise 1.4s var(--ease-out) 0.2s both;
+    }
+    @keyframes sunrise {
+      from { transform: translate(-50%, 108%); }
+      to   { transform: translate(-50%, 50%); }
+    }
+    .sun-rays {
+      animation: rays-in 1.6s var(--ease-out) 0.4s both;
+    }
+    @keyframes rays-in {
+      from { opacity: 0; transform: translate(-50%, 50%) rotate(10deg); }
+      to   { opacity: 1; transform: translate(-50%, 50%) rotate(0deg); }
+    }
+    .hero h1 .line > span {
+      animation: slam 0.7s var(--ease-out) both;
+      translate: 0 110%;
+    }
+    .hero h1 .line:nth-child(1) > span { animation-delay: 0.15s; }
+    .hero h1 .line:nth-child(2) > span { animation-delay: 0.28s; }
+    .hero h1 .line:nth-child(3) > span { animation-delay: 0.41s; }
+    @keyframes slam { to { translate: 0 0; } }
+    .hero-sub, .hero-cta-row {
+      animation: rise-in 0.8s var(--ease-out) 0.65s both;
+    }
+    @keyframes rise-in {
+      from { opacity: 0; translate: 0 16px; }
+      to   { opacity: 1; translate: 0 0; }
+    }
+  }
+
+  /* ---------- TICKER ---------- */
+
+  .ticker {
+    background: var(--ink);
+    color: var(--gold);
+    overflow: hidden;
+    border-top: 3px solid var(--ink);
+    padding: 0.7rem 0;
+    font-family: var(--display);
+    font-size: 1.15rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+  .ticker-track { display: inline-block; }
+  @media (prefers-reduced-motion: no-preference) {
+    .ticker-track { animation: ticker 28s linear infinite; }
+    @keyframes ticker { to { transform: translateX(-50%); } }
+  }
+
+  /* ---------- SECTIONS ---------- */
+
+  section { padding: clamp(4rem, 9vw, 7.5rem) clamp(1.25rem, 4vw, 3rem); }
+  .wrap { max-width: 68rem; margin: 0 auto; }
+
+  .section-title {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: clamp(2rem, 5.5vw, 3.6rem);
+    line-height: 1.02;
+    text-transform: uppercase;
+    letter-spacing: 0.005em;
+    max-width: 18ch;
+  }
+  .section-title em {
+    font-style: normal;
+    color: var(--sun);
+  }
+
+  .lede {
+    margin-top: 1.5rem;
+    max-width: var(--measure);
+    font-size: clamp(1.05rem, 1.4vw, 1.2rem);
+  }
+  .lede + .lede { margin-top: 1rem; }
+  .lede strong { font-weight: 700; }
+
+  /* ---------- THE PROBLEM ---------- */
+
+  .problem .wrap {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+  @media (min-width: 56rem) {
+    .problem .wrap { grid-template-columns: 1.1fr 0.9fr; align-items: center; gap: 4rem; }
+  }
+
+  .clock-card {
+    background: var(--ink);
+    color: var(--on-dark);
+    padding: 2.5rem 2rem;
+    font-family: var(--mono);
+  }
+  .clock-card .big-time {
+    font-family: var(--display);
+    font-size: clamp(3.4rem, 7vw, 5.2rem);
+    line-height: 1;
+    color: var(--gold);
+    font-variant-numeric: tabular-nums;
+  }
+  .clock-card .clock-label {
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--on-dark-muted);
+  }
+  .clock-card .clock-label b { color: var(--on-dark); font-weight: 700; }
+
+  /* ---------- TIMELINE (dark) ---------- */
+
+  .dark {
+    background: var(--ink);
+    color: var(--on-dark);
+  }
+
+  .timeline {
+    margin-top: 3.5rem;
+    display: grid;
+    gap: 0;
+    border-top: 3px solid var(--sun);
+  }
+  .stop {
+    display: grid;
+    grid-template-columns: minmax(7.5rem, auto) 1fr;
+    gap: 1.5rem;
+    padding: 2rem 0;
+    border-bottom: 1px solid oklch(0.32 0.02 45);
+    align-items: start;
+  }
+  .stop-time {
+    font-family: var(--display);
+    font-size: clamp(2rem, 4.5vw, 3.2rem);
+    line-height: 1;
+    color: var(--sun);
+    font-variant-numeric: tabular-nums;
+  }
+  .stop:nth-child(1) .stop-time { color: var(--gold); }
+  .stop h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+  }
+  .stop p {
+    color: var(--on-dark-muted);
+    max-width: 52ch;
+  }
+  .stop p b { color: var(--on-dark); font-weight: 700; }
+
+  .punchline {
+    margin-top: 3rem;
+    font-family: var(--display);
+    font-size: clamp(1.6rem, 3.6vw, 2.6rem);
+    line-height: 1.1;
+    text-transform: uppercase;
+    color: var(--gold);
+    max-width: 24ch;
+  }
+
+  /* ---------- UNDER THE HOOD ---------- */
+
+  .hood-list {
+    margin-top: 3rem;
+    list-style: none;
+    border-top: 3px solid var(--ink);
+  }
+  .hood-list li {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem 2.5rem;
+    padding: 1.75rem 0;
+    border-bottom: 1px solid oklch(0.85 0.01 45);
+  }
+  @media (min-width: 48rem) {
+    .hood-list li { grid-template-columns: 16rem 1fr; }
+  }
+  .hood-list h3 {
+    font-size: 1.05rem;
+    font-weight: 700;
+  }
+  .hood-list p {
+    color: var(--ink-soft);
+    max-width: 58ch;
+  }
+  .hood-list code {
+    font-family: var(--mono);
+    font-size: 0.86em;
+    background: oklch(0.94 0.015 75);
+    padding: 0.1em 0.4em;
+  }
+
+  /* ---------- SETUP ---------- */
+
+  .setup { background: var(--gold); }
+  .setup .section-title em { color: var(--sun-deep); }
+  .setup .lede { font-weight: 500; }
+
+  .steps {
+    margin-top: 3rem;
+    counter-reset: step;
+    display: grid;
+    gap: 1.75rem;
+  }
+  .step {
+    counter-increment: step;
+    background: var(--white);
+    padding: 2rem clamp(1.25rem, 3vw, 2.5rem);
+    border: 3px solid var(--ink);
+  }
+  .step h3 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    display: flex;
+    align-items: baseline;
+    gap: 0.9rem;
+  }
+  .step h3::before {
+    content: counter(step);
+    font-family: var(--display);
+    font-size: 2rem;
+    line-height: 1;
+    color: var(--sun);
+  }
+  .step p {
+    margin-top: 0.6rem;
+    color: var(--ink-soft);
+    max-width: var(--measure);
+  }
+  .step pre {
+    margin-top: 1rem;
+    background: var(--ink);
+    color: var(--on-dark);
+    font-family: var(--mono);
+    font-size: 0.88rem;
+    line-height: 1.7;
+    padding: 1.1rem 1.3rem;
+    overflow-x: auto;
+  }
+  .step pre .c { color: var(--on-dark-muted); }
+
+  /* ---------- FINAL CTA + FOOTER ---------- */
+
+  .final {
+    background: var(--sun);
+    text-align: center;
+  }
+  .final .section-title { margin-inline: auto; }
+  .final .lede { margin-inline: auto; font-weight: 500; }
+  .final .btn-ink { margin-top: 2.25rem; }
+
+  footer {
+    background: var(--ink);
+    color: var(--on-dark-muted);
+    padding: 2.5rem clamp(1.25rem, 4vw, 3rem);
+    font-size: 0.9rem;
+  }
+  footer .wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem 2.5rem;
+    justify-content: space-between;
+  }
+  footer a { color: var(--on-dark); text-underline-offset: 3px; }
+  footer a:hover { color: var(--gold); }
+
+  /* ---------- SCROLL REVEALS (enhance, never gate) ---------- */
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal { opacity: 1; }
+    .js .reveal {
+      opacity: 0;
+      translate: 0 24px;
+      transition: opacity 0.7s var(--ease-out), translate 0.7s var(--ease-out);
+    }
+    .js .reveal.in { opacity: 1; translate: 0 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ HERO ============ -->
+<header class="hero">
+  <div class="hero-top">
+    <span>AFVN · automated frequency</span>
+    <a href="https://github.com/marcozambrella/gooodmorning-vietnam">GitHub ↗</a>
+  </div>
+
+  <div class="hero-main">
+    <h1>
+      <span class="line"><span class="shout">Goooood</span></span>
+      <span class="line"><span>morning,</span></span>
+      <span class="line"><span>Claude!</span></span>
+    </h1>
+    <p class="hero-sub">
+      Your Claude Max 5-hour window starts at the <strong>first message</strong> —
+      so this little robot sends it while you're still asleep.
+      Your computer stays off. Your limits reset sooner.
+    </p>
+    <div class="hero-cta-row">
+      <a class="btn btn-ink" href="https://github.com/marcozambrella/gooodmorning-vietnam">Get it on GitHub</a>
+      <a class="btn btn-outline" href="#how">How it works</a>
+    </div>
+  </div>
+
+  <div class="sun-stage" aria-hidden="true">
+    <div class="sun-rays"></div>
+    <div class="sun"></div>
+    <div class="horizon"></div>
+  </div>
+</header>
+
+<div class="ticker" aria-hidden="true">
+  <div class="ticker-track">
+    Goooood morning&nbsp;✶&nbsp;the window is open&nbsp;✶&nbsp;rise and grind&nbsp;✶&nbsp;tokens are flowing&nbsp;✶&nbsp;
+    Goooood morning&nbsp;✶&nbsp;the window is open&nbsp;✶&nbsp;rise and grind&nbsp;✶&nbsp;tokens are flowing&nbsp;✶&nbsp;
+  </div>
+</div>
+
+<!-- ============ THE PROBLEM ============ -->
+<section class="problem" aria-labelledby="problem-title">
+  <div class="wrap">
+    <div class="reveal">
+      <h2 class="section-title" id="problem-title">The 5-hour clock only starts <em>when you do</em></h2>
+      <p class="lede">
+        Claude Max gives you a generous usage window that resets every five hours.
+        The catch: the timer starts at your <strong>first message</strong>, not at dawn.
+      </p>
+      <p class="lede">
+        Sit down at 10:00, hit your limit at noon — and now you're staring
+        at the wall until <strong>15:00</strong>. Five full hours, counted from when
+        <em>you</em> showed up. That's the bug. This is the fix.
+      </p>
+    </div>
+    <div class="clock-card reveal" role="img" aria-label="Without this tool, a window started at 10:00 resets at 15:00.">
+      <div class="big-time">15:00</div>
+      <p class="clock-label">
+        your reset time when you start at 10:00<br>
+        <b>← three hours of this is your own fault</b>
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HOW IT WORKS ============ -->
+<section class="dark" id="how" aria-labelledby="how-title">
+  <div class="wrap">
+    <h2 class="section-title reveal" id="how-title">One morning, <em>on air</em></h2>
+    <p class="lede reveal">A GitHub Actions cron checks in every 15 minutes — in the cloud, so your machine sleeps as late as you do. The schedule below is what actually happens.</p>
+
+    <div class="timeline reveal">
+      <div class="stop">
+        <div class="stop-time">08:00</div>
+        <div>
+          <h3>The robot grabs the mic</h3>
+          <p>The previous window has expired, so the automation sends Claude a one-line
+          <b>"buongiorno"</b> on the cheapest model. The 5-hour clock starts ticking — while you're still in bed.</p>
+        </div>
+      </div>
+      <div class="stop">
+        <div class="stop-time">10:00</div>
+        <div>
+          <h3>You sit down to work</h3>
+          <p>The window has already been running for two hours. You spend the morning burning tokens like a champ.</p>
+        </div>
+      </div>
+      <div class="stop">
+        <div class="stop-time">12:00</div>
+        <div>
+          <h3>You hit the limit</h3>
+          <p>It happens to the best of us. But the clock started at 08:00, not 10:00 —
+          so the reset lands at <b>13:00</b>, not 15:00.</p>
+        </div>
+      </div>
+      <div class="stop">
+        <div class="stop-time">13:00</div>
+        <div>
+          <h3>Back on air</h3>
+          <p>Fresh window, fresh tokens. You waited <b>one hour instead of three</b>.
+          The cycle repeats itself, dynamically, all day long.</p>
+        </div>
+      </div>
+    </div>
+
+    <p class="punchline reveal">Two hours of waiting, gone. Every single day.</p>
+  </div>
+</section>
+
+<!-- ============ UNDER THE HOOD ============ -->
+<section aria-labelledby="hood-title">
+  <div class="wrap">
+    <h2 class="section-title reveal" id="hood-title">Loud on the surface, <em>boring underneath</em></h2>
+    <p class="lede reveal">It's ~150 lines of dependency-free Python on a GitHub Actions cron. The boring parts are the point:</p>
+
+    <ul class="hood-list reveal">
+      <li>
+        <h3>Never double-sends</h3>
+        <p>Before saying anything, it checks Anthropic's OAuth usage endpoint. If a 5-hour window
+        is <strong>already active</strong> — because you're working, or it already fired — it stays quiet. No wasted tokens, no duplicate windows.</p>
+      </li>
+      <li>
+        <h3>Dynamic, not a fixed alarm</h3>
+        <p>No hardcoded 8 AM. The cron probes every 15 minutes and fires the moment the previous
+        window expires, so the cycle always restarts from your <strong>last session</strong> — around the clock.</p>
+      </li>
+      <li>
+        <h3>Costs almost nothing</h3>
+        <p>The wake-up call is a single one-turn message on <code>haiku</code>, the cheapest model.
+        It nibbles a crumb of quota to unlock the whole loaf earlier.</p>
+      </li>
+      <li>
+        <h3>Fails safe</h3>
+        <p>If the usage endpoint is down or changes shape, it falls back to a committed
+        <code>state.json</code> timestamp and refuses to send more than once per window. Worst case: it does nothing.</p>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ SETUP ============ -->
+<section class="setup" aria-labelledby="setup-title">
+  <div class="wrap">
+    <h2 class="section-title reveal" id="setup-title">On air in <em>five minutes</em></h2>
+    <p class="lede reveal">You need a Claude Pro or Max subscription and a GitHub account. That's it.</p>
+
+    <div class="steps reveal">
+      <div class="step">
+        <h3>Fork the repo</h3>
+        <p>Your fork carries the workflow. GitHub runs it for you, free, forever.</p>
+        <pre><code>gh repo fork marcozambrella/gooodmorning-vietnam --clone</code></pre>
+      </div>
+      <div class="step">
+        <h3>Mint a token</h3>
+        <p>On the machine where you're already logged into Claude Code. The token lives for a year.</p>
+        <pre><code>claude setup-token   <span class="c"># copy the printed token</span></code></pre>
+      </div>
+      <div class="step">
+        <h3>Set the secret &amp; go</h3>
+        <p>Drop the token into your fork's Actions secrets. The cron takes over from there.</p>
+        <pre><code>gh secret set CLAUDE_CODE_OAUTH_TOKEN --repo &lt;you&gt;/gooodmorning-vietnam</code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FINAL CTA ============ -->
+<section class="final" aria-labelledby="final-title">
+  <div class="wrap reveal">
+    <h2 class="section-title" id="final-title">Wake Claude up <em>before you do</em></h2>
+    <p class="lede">Free, open source, and slightly ridiculous — like all the best automations.</p>
+    <a class="btn btn-ink" href="https://github.com/marcozambrella/gooodmorning-vietnam">Star it on GitHub</a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>Good Morning, Vietnam — an unofficial fan-made hack. Not affiliated with Anthropic (or the movie).</span>
+    <span><a href="https://github.com/marcozambrella/gooodmorning-vietnam">Source on GitHub</a></span>
+  </div>
+</footer>
+
+<script>
+  document.body.classList.add('js');
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObserver' in window) {
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+      }
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+  } else {
+    document.querySelectorAll('.reveal').forEach((el) => el.classList.add('in'));
+  }
+</script>
+
+</body>
+</html>

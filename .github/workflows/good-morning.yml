@@ -37,6 +37,6 @@ jobs:
             git reset --hard origin/main
             cp /tmp/state.json automation/state.json
             git add automation/state.json
-            git commit -m "chore: update last_sent state [skip ci]"
+            git commit -m "chore: update window reset state [skip ci]"
             git push
           fi
